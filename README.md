@@ -8,13 +8,39 @@ This repository provides step-by-step documentation and examples on how to backu
 3. Configure MinIO  
 4. Register Snapshot Repository in Elasticsearch  
 5. Create Backup (Snapshot)  
-6. Verify Snapshots  
-7. Restore from Snapshot  
-8. Common Issues & Troubleshooting  
+7. Restore from Snapshot   
 
 ## 🚀 Quick Start
 
-## 2. Configure Elasticsearch
+## 3. Configure MinIO
+
+**Generate Access & Secret Keys**
+
+In MinIO, authentication is performed using an **Access Key** and a **Secret Key**.  
+These keys act like a username/password pair that allows applications (such as Elasticsearch) to connect to MinIO.
+
+#### Steps (via MinIO Web UI):
+1. Go to **Access Keys**.  
+2. Click **Create access key**. 
+3. MinIO will automatically generate:  
+   - **Access Key** (public identifier)  
+   - **Secret Key** (private password-like value)  
+4. Save these credentials securely.  
+  ![image](assets/keys.png)
+
+**Create a New Bucket**
+
+A **bucket** in MinIO is similar to a folder or container where your data is stored.  
+For Elasticsearch, each snapshot is written into a designated bucket in the S3-compatible storage.
+
+- Go to **Buckets** in the MinIO Web UI.  
+- Click **Create Bucket**.  
+- Enter a descriptive name, for example:  
+  - `elasticsearch-backup` → general Elasticsearch snapshots 
+
+![image](assets/bucket.png)
+
+## 3. Configure Elasticsearch
 
 ### 🔌 Install S3 Plugin and Configure Keystore on Elasticsearch
 
@@ -50,11 +76,8 @@ Check available keystore entries:
 
 ```bash
 /usr/share/elasticsearch/bin/elasticsearch-keystore list
-```
 
-Add MinIO credentials (Access Key and Secret Key) to the keystore:
-
-```bash
+#Add MinIO credentials (Access Key and Secret Key) to the keystore:
 /usr/share/elasticsearch/bin/elasticsearch-keystore add s3.client.default.access_key
 /usr/share/elasticsearch/bin/elasticsearch-keystore add s3.client.default.secret_key
 ```
@@ -69,34 +92,6 @@ Verify Keystore Configuration
 
 You should now see the newly added S3 client entries.
 
-## 3. Configure MinIO
-
-Generate Access & Secret Keys
-
-In MinIO, authentication is performed using an **Access Key** and a **Secret Key**.  
-These keys act like a username/password pair that allows applications (such as Elasticsearch) to connect to MinIO.
-
-#### Steps (via MinIO Web UI):
-1. Go to **Access Keys**.  
-2. Click **Create Service access key**. 
-3. MinIO will automatically generate:  
-   - **Access Key** (public identifier)  
-   - **Secret Key** (private password-like value)  
-4. Save these credentials securely.  
-  ![image](assets\keys.png)
-
-**Create a New Bucket**
-
-A **bucket** in MinIO is similar to a folder or container where your data is stored.  
-For Elasticsearch, each snapshot is written into a designated bucket in the S3-compatible storage.
-
-- Go to **Buckets** in the MinIO Web UI.  
-- Click **Create Bucket**.  
-- Enter a descriptive name, for example:  
-  - `elasticsearch-backup` → general Elasticsearch snapshots 
-
-![image](assets\bucket.png)
-
 ## 4. Register Snapshot Repository in Elasticsearch
 
 In order to store Elasticsearch snapshots in MinIO (S3-compatible storage), you must first register a **snapshot repository**.  
@@ -107,7 +102,7 @@ A repository is simply a logical pointer inside Elasticsearch that tells it *whe
 Run the following command to create a repository:
 
 ```bash
-curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/minio-repo" \
+curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backup" \
 -H 'Content-Type: application/json' \
 -d '{
   "type": "s3",
@@ -122,15 +117,15 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/minio-repo" \
 
 **Explanation of parameters:**
 
-type: Must be s3 because MinIO is S3-compatible.
+- **type:** Must be s3 because MinIO is S3-compatible.
 
-- bucket: The MinIO bucket you created earlier (e.g., elasticsearch-backup).
+- **bucket:** The MinIO bucket you created earlier (e.g., elasticsearch-backup).
 
-- endpoint: The URL of your MinIO server (default: http://your-minio-server-ip:9000).
+- **endpoint:** The URL of your MinIO server (default: http://your-minio-server-ip:9000).
 
-- protocol: Use http unless MinIO is configured with TLS (https).
+- **protocol:** Use http unless MinIO is configured with TLS (https).
 
-- path_style_access: Must be true for MinIO compatibility (forces path-style URLs).
+- **path_style_access:** Must be true for MinIO compatibility (forces path-style URLs).
 
 **Verify that the repository was successfully registered:**
 
@@ -139,7 +134,7 @@ curl -X GET "http://<elasticsearch-ip>:9200/_cat/repositories?v "
 #see detail
 curl -X GET "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups?pretty"
 ```
-![image](assets\catrepo.png)
+![image](assets/catrepo.png)
 
 
 ## 5. Create Backup (Snapshot)
@@ -161,11 +156,11 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backups/full
 
 **Explanation of Parameters:**
 
-- minio-repo: This is the name of the snapshot repository that you registered earlier.
+- **minio-repo:** This is the name of the snapshot repository that you registered earlier.
 
-- snapshot-$(date +%Y%m%d%H%M%S): The snapshot name is dynamically generated using the current date and time, ensuring a unique name for each snapshot.
+- **snapshot-$(date +%Y%m%d%H%M%S):** The snapshot name is dynamically generated using the current date and time, ensuring a unique name for each snapshot.
 
-- wait_for_completion=true: This ensures that Elasticsearch waits for the snapshot creation to complete before responding. If set to false, the operation returns immediately without waiting for completion.
+- **wait_for_completion=true:** This ensures that Elasticsearch waits for the snapshot creation to complete before responding. If set to false, the operation returns immediately without waiting for completion.
 
 **Verify Snapshot Creation**
 
@@ -177,7 +172,7 @@ curl -X GET "http://<elasticsearch-ip>:9200/_cat/snapshots/elasticsearch-backup?
 
 This will return the list of snapshots, including the status of each snapshot, ensuring that your backup has been completed successfully.
 
-![image](assets\snap.png)
+![image](assets/snap.png)
 
 Notes:
 
@@ -186,3 +181,36 @@ Notes:
 - The snapshots are incremental, meaning only the data that has changed since the last snapshot is stored, optimizing storage usage.
 
 - It is a good practice to regularly schedule snapshots to ensure you have recent backups of your Elasticsearch indices.
+
+## Daily Snapshot: Create a Snapshot Lifecycle Management (SLM) Policy
+
+The Snapshot Lifecycle Management (SLM) policy allows you to automate the creation of snapshots on a regular schedule. In this case, we're creating a policy that triggers a daily backup of all indices.
+
+**Create the SLM Policy for Daily Backups**
+
+Run the following command to create a daily snapshot policy:
+
+```bash
+curl -X PUT "http://<elasticsearch-ip>:9200/_slm/policy/daily-snapshots" \
+-H 'Content-Type: application/json' \
+-d '{
+  "name": "<full-backup-{now/d}>",
+  "schedule": "0 0 * * * ?",
+  "repository": "elasticsearch-backups",
+  "config": {
+    "indices": ["*"],
+    "ignore_unavailable": true,
+    "include_global_state": true
+  }
+}'
+```
+
+**Check the Status of the SLM Policy**
+
+To check the status of the daily-snapshots policy, run the following command:
+
+```bash
+curl -X GET "http://<elasticsearch-ip>:9200/_slm/policy/daily-snapshots?pretty"
+```
+
+![image](assets/daily.png)
