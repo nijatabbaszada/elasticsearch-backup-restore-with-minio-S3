@@ -231,6 +231,9 @@ After restoring the snapshot, you can check the status of the recovery process b
 curl -s "http://<elasticsearch-ip>:9200/_cat/recovery?v"
 ```
 
+Note:
+If you want to restore the snapshot into another Elasticsearch cluster, you must configure the same repository on that cluster as well (repeat the repository creation steps with the same MinIO bucket, endpoint, and credentials).
+
 ## 6. Useful Links
 
 - [Elasticsearch Snapshot and Restore Documentation](https://www.elastic.co/docs/api/doc/elasticsearch/v8/group/endpoint-snapshot)
