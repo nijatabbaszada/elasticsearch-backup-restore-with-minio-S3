@@ -2,7 +2,7 @@
 
 This repository provides step-by-step documentation and examples on how to backup and restore Elasticsearch data using **MinIO** as an S3-compatible storage.
 
-## 📌 Contents
+## Contents
 1. Introduction  
 2. Configure Elasticsearch
 3. Configure MinIO  
@@ -10,9 +10,7 @@ This repository provides step-by-step documentation and examples on how to backu
 5. Create Backup (Snapshot)  
 7. Restore from Snapshot   
 
-## 🚀 Quick Start
-
-## 3. Configure MinIO
+## 1. Configure MinIO
 
 **Generate Access & Secret Keys**
 
@@ -40,26 +38,26 @@ For Elasticsearch, each snapshot is written into a designated bucket in the S3-c
 
 ![image](assets/bucket.png)
 
+**Note:**  
+If you have not installed MinIO yet, you can install it in your preferred mode by following the official documentation:  
+👉 [Install MinIO on Linux](https://docs.min.io/enterprise/aistor-object-store/installation/linux/install/)
+
 ## 3. Configure Elasticsearch
 
-### 🔌 Install S3 Plugin and Configure Keystore on Elasticsearch
+**Install S3 Plugin and Configure Keystore on Elasticsearch**
 
 In order to enable snapshot and restore functionality with MinIO (S3-compatible storage), you must install the `repository-s3` plugin and configure Elasticsearch keystore with the appropriate credentials.
-
-### 1. Install the repository-s3 Plugin
 
 ```bash
 /usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3 --batch
 ```
+
 >⚠️ After installation, you must restart Elasticsearch for the changes to take effect.
 
 ```bash
 systemctl restart elasticsearch
-```
 
-Verify Installed Plugins
-
-```bash
+#Verify Installed Plugins
 curl -X GET "http://<elasticsearch-ip>:9200/_cat/plugins?v"
 ```
 
@@ -70,7 +68,7 @@ Or check directly on the server:
 ls /usr/share/elasticsearch/modules/
 ```
 
-### 2. Configure Elasticsearch Keystore
+**Configure Elasticsearch Keystore**
 
 Check available keystore entries:
 
@@ -94,20 +92,19 @@ You should now see the newly added S3 client entries.
 
 ## 4. Register Snapshot Repository in Elasticsearch
 
-In order to store Elasticsearch snapshots in MinIO (S3-compatible storage), you must first register a **snapshot repository**.  
-A repository is simply a logical pointer inside Elasticsearch that tells it *where* to store snapshots.
+In order to store Elasticsearch snapshots in MinIO (S3-compatible storage), you must first register a **snapshot repository**. A repository is simply a logical pointer inside Elasticsearch that tells it *where* to store snapshots.
 
 ### Create the Repository
 
 Run the following command to create a repository:
 
 ```bash
-curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backup" \
+curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups" \
 -H 'Content-Type: application/json' \
 -d '{
   "type": "s3",
   "settings": {
-    "bucket": "elasticsearch-backup",
+    "bucket": "elasticsearch-backups",
     "endpoint": "http://<minio-ip>:9000",
     "protocol": "http",
     "path_style_access": true
@@ -131,7 +128,7 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backup" \
 
 ```bash
 curl -X GET "http://<elasticsearch-ip>:9200/_cat/repositories?v "
-#see detail
+#see more detail
 curl -X GET "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups?pretty"
 ```
 ![image](assets/catrepo.png)
@@ -146,7 +143,7 @@ Once you have successfully registered your snapshot repository in Elasticsearch,
 To create a snapshot of your Elasticsearch indices, run the following command:
 
 ```bash
-curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backups/full_backup_$(date +%F_%H-%M)" \
+curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups/full_backup_$(date +%F_%H-%M)" \
 -H "Content-Type: application/json" -d '{
   "indices": "*",
   "ignore_unavailable": true,
@@ -156,18 +153,16 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backups/full
 
 **Explanation of Parameters:**
 
-- **minio-repo:** This is the name of the snapshot repository that you registered earlier.
+- **elasticsearch_backup:** This is the name of the snapshot repository that you registered earlier.
 
-- **snapshot-$(date +%Y%m%d%H%M%S):** The snapshot name is dynamically generated using the current date and time, ensuring a unique name for each snapshot.
-
-- **wait_for_completion=true:** This ensures that Elasticsearch waits for the snapshot creation to complete before responding. If set to false, the operation returns immediately without waiting for completion.
+- **full_backup_$(date +%F_%H-%M):** The snapshot name is dynamically generated using the current date and time, ensuring a unique name for each snapshot.
 
 **Verify Snapshot Creation**
 
 To verify that the snapshot has been successfully created, run the following command:
 
 ```bash
-curl -X GET "http://<elasticsearch-ip>:9200/_cat/snapshots/elasticsearch-backup?v"
+curl -X GET "http://<elasticsearch-ip>:9200/_cat/snapshots/elasticsearch_backups?v"
 ```
 
 This will return the list of snapshots, including the status of each snapshot, ensuring that your backup has been completed successfully.
@@ -182,7 +177,7 @@ Notes:
 
 - It is a good practice to regularly schedule snapshots to ensure you have recent backups of your Elasticsearch indices.
 
-## Daily Snapshot: Create a Snapshot Lifecycle Management (SLM) Policy
+### 2.Daily Snapshot: Create a Snapshot Lifecycle Management (SLM) Policy
 
 The Snapshot Lifecycle Management (SLM) policy allows you to automate the creation of snapshots on a regular schedule. In this case, we're creating a policy that triggers a daily backup of all indices.
 
@@ -196,7 +191,7 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_slm/policy/daily-snapshots" \
 -d '{
   "name": "<full-backup-{now/d}>",
   "schedule": "0 0 * * * ?",
-  "repository": "elasticsearch-backups",
+  "repository": "elasticsearch_backups",
   "config": {
     "indices": ["*"],
     "ignore_unavailable": true,
@@ -223,7 +218,7 @@ To restore data from a snapshot, Elasticsearch uses the restore operation. Below
 Use the following POST command to restore the snapshot into Elasticsearch:
 
 ```bash
-curl -X POST "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backups/backup_name/_restore" -H "Content-Type: application/json" -d '{
+curl -X POST "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups/backup_name/_restore" -H "Content-Type: application/json" -d '{
   "indices": "*",
   "ignore_unavailable": true,
   "include_global_state": true  
