@@ -1,4 +1,4 @@
-# Elasticsearch Backup & Restore with MinIO S3 Step by Step
+# Elasticsearch Backup & Restore with MinIO S3
 
 This repository provides step-by-step documentation and examples on how to backup and restore Elasticsearch data using **MinIO** as an S3-compatible storage.
 
@@ -7,7 +7,7 @@ This repository provides step-by-step documentation and examples on how to backu
 1. Configure MinIO
 2. Configure Elasticsearch
 3. Register Snapshot Repository in Elasticsearch  
-4. Create Backup (Snapshot)  
+4. Create Backup (Snapshot)
 5. Restore from Snapshot  
 6. Useful Links  
 
@@ -105,7 +105,7 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups" \
 -d '{
   "type": "s3",
   "settings": {
-    "bucket": "elasticsearch-backups",
+    "bucket": "elasticsearch-backup",
     "endpoint": "http://<minio-ip>:9000",
     "protocol": "http",
     "path_style_access": true
@@ -153,7 +153,7 @@ curl -X PUT "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups/full
 
 **Explanation of Parameters:**
 
-- **elasticsearch_backup:** This is the name of the snapshot repository that you registered earlier.
+- **elasticsearch_backups:** This is the name of the snapshot repository that you registered earlier.
 
 - **full_backup_$(date +%F_%H-%M):** The snapshot name is dynamically generated using the current date and time, ensuring a unique name for each snapshot.
 
@@ -233,7 +233,7 @@ curl -s "http://<elasticsearch-ip>:9200/_cat/recovery?v"
 
 ## 6. Useful Links
 
-[Elasticsearch Snapshot and Restore Documentation](https://www.elastic.co/docs/api/doc/elasticsearch/v8/group/endpoint-snapshot)
+- [Elasticsearch Snapshot and Restore Documentation](https://www.elastic.co/docs/api/doc/elasticsearch/v8/group/endpoint-snapshot)
 
 - [MinIO Installation Guide](https://docs.min.io/enterprise/aistor-object-store/installation/linux/install/)
 
