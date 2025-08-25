@@ -214,3 +214,24 @@ curl -X GET "http://<elasticsearch-ip>:9200/_slm/policy/daily-snapshots?pretty"
 ```
 
 ![image](assets/daily.png)
+
+
+## 6. Restore a Snapshot from the MinIO Backup
+
+To restore data from a snapshot, Elasticsearch uses the restore operation. Below is the command to restore a snapshot stored in MinIO backup to Elasticsearch.
+
+Use the following POST command to restore the snapshot into Elasticsearch:
+
+```bash
+curl -X POST "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch-backups/backup_name/_restore" -H "Content-Type: application/json" -d '{
+  "indices": "*",
+  "ignore_unavailable": true,
+  "include_global_state": true  
+}'
+```
+
+After restoring the snapshot, you can check the status of the recovery process by running the following command:
+
+```bash
+curl -s "http://<elasticsearch-ip>:9200/_cat/recovery?v"
+```
