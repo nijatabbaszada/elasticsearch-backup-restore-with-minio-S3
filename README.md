@@ -3,12 +3,13 @@
 This repository provides step-by-step documentation and examples on how to backup and restore Elasticsearch data using **MinIO** as an S3-compatible storage.
 
 ## Contents
-1. Introduction  
+
+1. Configure MinIO
 2. Configure Elasticsearch
-3. Configure MinIO  
-4. Register Snapshot Repository in Elasticsearch  
-5. Create Backup (Snapshot)  
-7. Restore from Snapshot   
+3. Register Snapshot Repository in Elasticsearch  
+4. Create Backup (Snapshot)  
+5. Restore from Snapshot  
+6. Useful Links  
 
 ## 1. Configure MinIO
 
@@ -42,7 +43,7 @@ For Elasticsearch, each snapshot is written into a designated bucket in the S3-c
 If you have not installed MinIO yet, you can install it in your preferred mode by following the official documentation:  
 👉 [Install MinIO on Linux](https://docs.min.io/enterprise/aistor-object-store/installation/linux/install/)
 
-## 3. Configure Elasticsearch
+## 2. Configure Elasticsearch
 
 **Install S3 Plugin and Configure Keystore on Elasticsearch**
 
@@ -90,7 +91,7 @@ Verify Keystore Configuration
 
 You should now see the newly added S3 client entries.
 
-## 4. Register Snapshot Repository in Elasticsearch
+## 3. Register Snapshot Repository in Elasticsearch
 
 In order to store Elasticsearch snapshots in MinIO (S3-compatible storage), you must first register a **snapshot repository**. A repository is simply a logical pointer inside Elasticsearch that tells it *where* to store snapshots.
 
@@ -133,8 +134,7 @@ curl -X GET "http://<elasticsearch-ip>:9200/_snapshot/elasticsearch_backups?pret
 ```
 ![image](assets/catrepo.png)
 
-
-## 5. Create Backup (Snapshot)
+## 4. Create Backup (Snapshot)
 
 Once you have successfully registered your snapshot repository in Elasticsearch, you can proceed to create backups (snapshots) of your data. Snapshots are essentially point-in-time copies of your indices, which can be restored later if needed.
 
@@ -211,7 +211,7 @@ curl -X GET "http://<elasticsearch-ip>:9200/_slm/policy/daily-snapshots?pretty"
 ![image](assets/daily.png)
 
 
-## 6. Restore a Snapshot from the MinIO Backup
+## 5. Restore a Snapshot from the MinIO Backup
 
 To restore data from a snapshot, Elasticsearch uses the restore operation. Below is the command to restore a snapshot stored in MinIO backup to Elasticsearch.
 
@@ -230,3 +230,13 @@ After restoring the snapshot, you can check the status of the recovery process b
 ```bash
 curl -s "http://<elasticsearch-ip>:9200/_cat/recovery?v"
 ```
+
+## 6. Useful Links
+
+[Elasticsearch Snapshot and Restore Documentation](https://www.elastic.co/docs/api/doc/elasticsearch/v8/group/endpoint-snapshot)
+
+- [MinIO Installation Guide](https://docs.min.io/enterprise/aistor-object-store/installation/linux/install/)
+
+- [Elasticsearch SLM (Snapshot Lifecycle Management)](https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-snapshot-lifecycle-management.html)
+
+- [MinIO Client (mc) Tool Documentation](https://min.io/docs/minio/linux/reference/minio-mc.html)
